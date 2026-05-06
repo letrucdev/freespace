@@ -1,22 +1,25 @@
-﻿#Requires -Version 5.1
+#Requires -Version 5.1
 <#
 .SYNOPSIS
     Interactive cleanup menu for Windows system & user folders.
 .DESCRIPTION
     Provides a menu to analyze sizes, clean specific folders, run Disk Cleanup,
     empty Recycle Bin, and run Component Store cleanup (DISM).
+    Supports English (default) and Vietnamese — switch language from the menu.
 .NOTES
     Run as Administrator for full functionality (Windows.old, Windows folders, DISM).
 #>
 
 [CmdletBinding()]
 param(
-    [string]$Title = 'Free Space'
+    [string]$Title = 'Free Space',
+    [ValidateSet('en', 'vi')]
+    [string]$Language = 'en'
 )
 
 $ErrorActionPreference = 'Stop'
 
-# Ensure Vietnamese output renders correctly in legacy consoles (PS 5.1 / cmd)
+# Ensure non-ASCII output (Vietnamese) renders correctly in legacy consoles (PS 5.1 / cmd)
 try {
     [Console]::OutputEncoding = [System.Text.UTF8Encoding]::new()
     $OutputEncoding = [System.Text.UTF8Encoding]::new()
@@ -24,6 +27,129 @@ try {
 catch { }
 
 try { $Host.UI.RawUI.WindowTitle = $Title } catch { }
+
+# ---------- Language / strings ----------
+$Script:Language = $Language
+
+$Script:Strings = @{
+    en = @{
+        AnalysisHeader      = '=== Folder size analysis ==='
+        Scanning            = '  Scanning: {0} ...'
+        NotExists           = '(not found)'
+        Total               = 'Total: {0}'
+        CleanupHeader       = '=== Cleanup folders ==='
+        AllOption           = '  [A] All'
+        CancelOption        = '  [0] Cancel'
+        SelectFolders       = 'Select folder(s) to clean (e.g. 1,3,5 or A)'
+        Cancelled           = 'Cancelled.'
+        InvalidSelection    = 'No valid selection.'
+        WillClean           = 'Will clean:'
+        ConfirmYN           = 'Confirm? (y/N)'
+        AdminWarning        = 'WARNING: Some items require Administrator privileges. Some files may not be deletable.'
+        SkipNotFound        = '  [skip] {0}: not found ({1})'
+        DeletingFolder      = '  Deleting folder: {0}'
+        Cleaning            = '  Cleaning: {0}'
+        ErrorPrefix         = '    Error: {0}'
+        Freed               = '    -> Freed {0}'
+        LockedSuffix        = ' ({0} items locked/in use, skipped)'
+        StoppingService     = '  Stopping service: {0}'
+        StopServiceFail     = '  Could not stop {0}: {1}'
+        TotalFreed          = 'Total freed: {0}'
+        OpeningDiskCleanup  = 'Opening Disk Cleanup...'
+        DiskCleanupFail     = 'Could not open cleanmgr.exe: {0}'
+        RecycleHeader       = '=== Empty Recycle Bin ==='
+        RecycleConfirm      = 'Confirm emptying entire Recycle Bin? (y/N)'
+        RecycleEmptied      = 'Recycle Bin has been emptied.'
+        RecycleError        = 'Error: {0}'
+        DismHeader          = '=== Component Store Cleanup (DISM) ==='
+        DismNeedAdmin       = 'Administrator privileges required to run DISM. Skipping.'
+        DismNote            = 'Note: this operation may take a few minutes and will permanently remove old updates.'
+        DismContinue        = 'Continue? (y/N)'
+        DismDone            = 'DISM completed (exit code = {0}).'
+        DismError           = 'DISM error: {0}'
+        SessionAdmin        = 'Administrator'
+        SessionUser         = 'User (no admin privileges)'
+        SessionLabel        = '  Session: {0}'
+        LanguageLabel       = '  Language: English'
+        Menu1               = '  1. Analyze folder sizes'
+        Menu2               = '  2. Cleanup folder (select individual or all)'
+        Menu3               = '  3. Open Disk Cleanup (cleanmgr)'
+        Menu4               = '  4. Empty Recycle Bin'
+        Menu5               = '  5. Component Store Cleanup (DISM)'
+        Menu6               = '  6. Switch language (English / Tieng Viet)'
+        Menu7               = '  7. Exit'
+        ChoosePrompt        = 'Choice (1-7)'
+        InvalidChoice       = 'Invalid choice.'
+        ReturnToMenu        = 'Press Enter to return to menu'
+        LanguageSwitched    = 'Language switched to English.'
+        Bye                 = 'Bye.'
+    }
+    vi = @{
+        AnalysisHeader      = '=== Phan tich size folder ==='
+        Scanning            = '  Dang quet: {0} ...'
+        NotExists           = '(khong ton tai)'
+        Total               = 'Tong: {0}'
+        CleanupHeader       = '=== Cleanup folders ==='
+        AllOption           = '  [A] Tat ca'
+        CancelOption        = '  [0] Huy'
+        SelectFolders       = 'Chon folder can clean (vd: 1,3,5 hoac A)'
+        Cancelled           = 'Da huy.'
+        InvalidSelection    = 'Khong co lua chon hop le.'
+        WillClean           = 'Se clean:'
+        ConfirmYN           = 'Xac nhan? (y/N)'
+        AdminWarning        = 'CANH BAO: Mot so muc can quyen Administrator. Mot phan file co the khong xoa duoc.'
+        SkipNotFound        = '  [skip] {0}: khong ton tai ({1})'
+        DeletingFolder      = '  Dang xoa thu muc: {0}'
+        Cleaning            = '  Dang don: {0}'
+        ErrorPrefix         = '    Loi: {0}'
+        Freed               = '    -> Giai phong {0}'
+        LockedSuffix        = ' ({0} muc bi khoa/dang dung, bo qua)'
+        StoppingService     = '  Stopping service: {0}'
+        StopServiceFail     = '  Khong stop duoc {0}: {1}'
+        TotalFreed          = 'Tong giai phong: {0}'
+        OpeningDiskCleanup  = 'Dang mo Disk Cleanup...'
+        DiskCleanupFail     = 'Khong mo duoc cleanmgr.exe: {0}'
+        RecycleHeader       = '=== Empty Recycle Bin ==='
+        RecycleConfirm      = 'Xac nhan xoa toan bo Recycle Bin? (y/N)'
+        RecycleEmptied      = 'Recycle Bin da duoc lam trong.'
+        RecycleError        = 'Loi: {0}'
+        DismHeader          = '=== Component Store Cleanup (DISM) ==='
+        DismNeedAdmin       = 'Can quyen Administrator de chay DISM. Bo qua.'
+        DismNote            = 'Luu y: thao tac nay co the mat vai phut va se xoa vinh vien cac ban update cu.'
+        DismContinue        = 'Tiep tuc? (y/N)'
+        DismDone            = 'DISM hoan tat (exit code = {0}).'
+        DismError           = 'Loi DISM: {0}'
+        SessionAdmin        = 'Administrator'
+        SessionUser         = 'User (khong co quyen admin)'
+        SessionLabel        = '  Phien: {0}'
+        LanguageLabel       = '  Ngon ngu: Tieng Viet'
+        Menu1               = '  1. Phan tich size cac folder'
+        Menu2               = '  2. Cleanup folder (chon tung cai hoac tat ca)'
+        Menu3               = '  3. Mo Disk Cleanup (cleanmgr)'
+        Menu4               = '  4. Empty Recycle Bin'
+        Menu5               = '  5. Component Store Cleanup (DISM)'
+        Menu6               = '  6. Doi ngon ngu (English / Tieng Viet)'
+        Menu7               = '  7. Thoat'
+        ChoosePrompt        = 'Chon (1-7)'
+        InvalidChoice       = 'Lua chon khong hop le.'
+        ReturnToMenu        = 'Nhan Enter de quay lai menu'
+        LanguageSwitched    = 'Da chuyen sang Tieng Viet.'
+        Bye                 = 'Tam biet.'
+    }
+}
+
+function Get-Str {
+    param(
+        [Parameter(Mandatory)][string]$Key,
+        [object[]]$FormatArgs
+    )
+    $template = $Script:Strings[$Script:Language][$Key]
+    if ($null -eq $template) { return $Key }
+    if ($FormatArgs -and $FormatArgs.Count -gt 0) {
+        return [string]::Format($template, $FormatArgs)
+    }
+    return $template
+}
 
 # ---------- Folder definitions ----------
 $Folders = [ordered]@{
@@ -74,20 +200,20 @@ function Get-FolderSize {
 
 function Show-FolderSizes {
     Write-Host ""
-    Write-Host "=== Phân tích size folder ===" -ForegroundColor Cyan
+    Write-Host (Get-Str 'AnalysisHeader') -ForegroundColor Cyan
     Write-Host ""
 
     $rows = @()
     $totalBytes = 0.0
     foreach ($name in $Folders.Keys) {
         $path = $Folders[$name]
-        Write-Host ("  Đang quét: {0} ..." -f $name) -ForegroundColor DarkGray
+        Write-Host (Get-Str 'Scanning' @($name)) -ForegroundColor DarkGray
         $info = Get-FolderSize -Path $path
         $totalBytes += $info.Bytes
         $rows += [pscustomobject]@{
             Folder    = $name
             Path      = $path
-            Size      = if ($info.Exists) { Format-Size $info.Bytes } else { '(không tồn tại)' }
+            Size      = if ($info.Exists) { Format-Size $info.Bytes } else { (Get-Str 'NotExists') }
             Files     = if ($info.Exists) { $info.FileCount } else { '-' }
             SizeBytes = $info.Bytes
         }
@@ -97,7 +223,7 @@ function Show-FolderSizes {
     $rows | Sort-Object -Property SizeBytes -Descending |
     Format-Table -AutoSize -Property Folder, Size, Files, Path
 
-    Write-Host ("Tổng: {0}" -f (Format-Size $totalBytes)) -ForegroundColor Yellow
+    Write-Host (Get-Str 'Total' @((Format-Size $totalBytes))) -ForegroundColor Yellow
     Write-Host ""
 }
 
@@ -109,7 +235,7 @@ function Clear-FolderContents {
     )
 
     if (-not (Test-Path -LiteralPath $Path)) {
-        Write-Host ("  [skip] {0}: không tồn tại ({1})" -f $Name, $Path) -ForegroundColor DarkYellow
+        Write-Host (Get-Str 'SkipNotFound' @($Name, $Path)) -ForegroundColor DarkYellow
         return [pscustomobject]@{ Name = $Name; Freed = 0; Errors = 0 }
     }
 
@@ -117,7 +243,7 @@ function Clear-FolderContents {
     $errors = 0
 
     if ($DeleteRoot) {
-        Write-Host ("  Đang xoá thư mục: {0}" -f $Path) -ForegroundColor Yellow
+        Write-Host (Get-Str 'DeletingFolder' @($Path)) -ForegroundColor Yellow
         try {
             # takeown + icacls helps remove protected Windows.old contents
             & takeown.exe /F $Path /R /D Y *> $null
@@ -126,11 +252,11 @@ function Clear-FolderContents {
         }
         catch {
             $errors++
-            Write-Host ("    Lỗi: {0}" -f $_.Exception.Message) -ForegroundColor Red
+            Write-Host (Get-Str 'ErrorPrefix' @($_.Exception.Message)) -ForegroundColor Red
         }
     }
     else {
-        Write-Host ("  Đang dọn: {0}" -f $Path) -ForegroundColor Yellow
+        Write-Host (Get-Str 'Cleaning' @($Path)) -ForegroundColor Yellow
         Get-ChildItem -LiteralPath $Path -Force -ErrorAction SilentlyContinue | ForEach-Object {
             try {
                 Remove-Item -LiteralPath $_.FullName -Recurse -Force -ErrorAction Stop
@@ -144,8 +270,8 @@ function Clear-FolderContents {
     $after = if (Test-Path -LiteralPath $Path) { (Get-FolderSize -Path $Path).Bytes } else { 0 }
     $freed = [Math]::Max(0, $before - $after)
 
-    $msg = "    -> Giải phóng {0}" -f (Format-Size $freed)
-    if ($errors -gt 0) { $msg += " ($errors mục bị khoá/đang dùng, bỏ qua)" }
+    $msg = (Get-Str 'Freed' @((Format-Size $freed)))
+    if ($errors -gt 0) { $msg += (Get-Str 'LockedSuffix' @($errors)) }
     Write-Host $msg -ForegroundColor Green
 
     return [pscustomobject]@{ Name = $Name; Freed = $freed; Errors = $errors }
@@ -157,12 +283,12 @@ function Stop-WindowsUpdateForCleanup {
         try {
             $s = Get-Service -Name $svc -ErrorAction Stop
             if ($s.Status -eq 'Running') {
-                Write-Host ("  Stopping service: {0}" -f $svc) -ForegroundColor DarkGray
+                Write-Host (Get-Str 'StoppingService' @($svc)) -ForegroundColor DarkGray
                 Stop-Service -Name $svc -Force -ErrorAction Stop
             }
         }
         catch {
-            Write-Host ("  Không stop được {0}: {1}" -f $svc, $_.Exception.Message) -ForegroundColor DarkYellow
+            Write-Host (Get-Str 'StopServiceFail' @($svc, $_.Exception.Message)) -ForegroundColor DarkYellow
         }
     }
 }
@@ -175,7 +301,7 @@ function Start-WindowsUpdateAfterCleanup {
 
 function Invoke-Cleanup {
     Write-Host ""
-    Write-Host "=== Cleanup folders ===" -ForegroundColor Cyan
+    Write-Host (Get-Str 'CleanupHeader') -ForegroundColor Cyan
     Write-Host ""
 
     $names = @($Folders.Keys)
@@ -183,13 +309,13 @@ function Invoke-Cleanup {
         Write-Host ("  [{0}] {1}" -f ($i + 1), $names[$i])
         Write-Host ("       {0}" -f $Folders[$names[$i]]) -ForegroundColor DarkGray
     }
-    Write-Host ("  [A] Tất cả")
-    Write-Host ("  [0] Huỷ")
+    Write-Host (Get-Str 'AllOption')
+    Write-Host (Get-Str 'CancelOption')
     Write-Host ""
 
-    $sel = Read-Host "Chọn folder cần clean (vd: 1,3,5 hoặc A)"
+    $sel = Read-Host (Get-Str 'SelectFolders')
     if ([string]::IsNullOrWhiteSpace($sel) -or $sel -eq '0') {
-        Write-Host "Đã huỷ." -ForegroundColor DarkYellow
+        Write-Host (Get-Str 'Cancelled') -ForegroundColor DarkYellow
         return
     }
 
@@ -210,16 +336,16 @@ function Invoke-Cleanup {
     }
 
     if (-not $picked -or $picked.Count -eq 0) {
-        Write-Host "Không có lựa chọn hợp lệ." -ForegroundColor Red
+        Write-Host (Get-Str 'InvalidSelection') -ForegroundColor Red
         return
     }
 
     Write-Host ""
-    Write-Host "Sẽ clean:" -ForegroundColor Cyan
+    Write-Host (Get-Str 'WillClean') -ForegroundColor Cyan
     foreach ($n in $picked) { Write-Host ("  - {0}  ({1})" -f $n, $Folders[$n]) }
-    $confirm = Read-Host "Xác nhận? (y/N)"
+    $confirm = Read-Host (Get-Str 'ConfirmYN')
     if ($confirm -notmatch '^[Yy]') {
-        Write-Host "Đã huỷ." -ForegroundColor DarkYellow
+        Write-Host (Get-Str 'Cancelled') -ForegroundColor DarkYellow
         return
     }
 
@@ -228,7 +354,7 @@ function Invoke-Cleanup {
     }
     if ($needsAdmin -and -not (Test-IsAdmin)) {
         Write-Host ""
-        Write-Host "CẢNH BÁO: Một số mục cần quyền Administrator. Một phần file có thể không xoá được." -ForegroundColor Yellow
+        Write-Host (Get-Str 'AdminWarning') -ForegroundColor Yellow
         Write-Host ""
     }
 
@@ -248,93 +374,102 @@ function Invoke-Cleanup {
 
     $totalFreed = ($results | Measure-Object -Property Freed -Sum).Sum
     Write-Host ""
-    Write-Host ("Tổng giải phóng: {0}" -f (Format-Size $totalFreed)) -ForegroundColor Green
+    Write-Host (Get-Str 'TotalFreed' @((Format-Size $totalFreed))) -ForegroundColor Green
     Write-Host ""
 }
 
 function Open-DiskCleanup {
     Write-Host ""
-    Write-Host "Đang mở Disk Cleanup..." -ForegroundColor Cyan
+    Write-Host (Get-Str 'OpeningDiskCleanup') -ForegroundColor Cyan
     try {
         Start-Process -FilePath 'cleanmgr.exe' -ErrorAction Stop
     }
     catch {
-        Write-Host ("Không mở được cleanmgr.exe: {0}" -f $_.Exception.Message) -ForegroundColor Red
+        Write-Host (Get-Str 'DiskCleanupFail' @($_.Exception.Message)) -ForegroundColor Red
     }
 }
 
 function Clear-RecycleBinAll {
     Write-Host ""
-    Write-Host "=== Empty Recycle Bin ===" -ForegroundColor Cyan
-    $confirm = Read-Host "Xác nhận xoá toàn bộ Recycle Bin? (y/N)"
+    Write-Host (Get-Str 'RecycleHeader') -ForegroundColor Cyan
+    $confirm = Read-Host (Get-Str 'RecycleConfirm')
     if ($confirm -notmatch '^[Yy]') {
-        Write-Host "Đã huỷ." -ForegroundColor DarkYellow
+        Write-Host (Get-Str 'Cancelled') -ForegroundColor DarkYellow
         return
     }
     try {
         Clear-RecycleBin -Force -ErrorAction Stop
-        Write-Host "Recycle Bin đã được làm trống." -ForegroundColor Green
+        Write-Host (Get-Str 'RecycleEmptied') -ForegroundColor Green
     }
     catch {
-        Write-Host ("Lỗi: {0}" -f $_.Exception.Message) -ForegroundColor Red
+        Write-Host (Get-Str 'RecycleError' @($_.Exception.Message)) -ForegroundColor Red
     }
 }
 
 function Invoke-ComponentStoreCleanup {
     Write-Host ""
-    Write-Host "=== Component Store Cleanup (DISM) ===" -ForegroundColor Cyan
+    Write-Host (Get-Str 'DismHeader') -ForegroundColor Cyan
     if (-not (Test-IsAdmin)) {
-        Write-Host "Cần quyền Administrator để chạy DISM. Bỏ qua." -ForegroundColor Red
+        Write-Host (Get-Str 'DismNeedAdmin') -ForegroundColor Red
         return
     }
-    Write-Host "Lưu ý: thao tác này có thể mất vài phút và sẽ xoá vĩnh viễn các bản update cũ." -ForegroundColor Yellow
-    $confirm = Read-Host "Tiếp tục? (y/N)"
+    Write-Host (Get-Str 'DismNote') -ForegroundColor Yellow
+    $confirm = Read-Host (Get-Str 'DismContinue')
     if ($confirm -notmatch '^[Yy]') {
-        Write-Host "Đã huỷ." -ForegroundColor DarkYellow
+        Write-Host (Get-Str 'Cancelled') -ForegroundColor DarkYellow
         return
     }
     try {
         & dism.exe /Online /Cleanup-Image /StartComponentCleanup /ResetBase
         Write-Host ""
-        Write-Host ("DISM hoàn tất (exit code = {0})." -f $LASTEXITCODE) -ForegroundColor Green
+        Write-Host (Get-Str 'DismDone' @($LASTEXITCODE)) -ForegroundColor Green
     }
     catch {
-        Write-Host ("Lỗi DISM: {0}" -f $_.Exception.Message) -ForegroundColor Red
+        Write-Host (Get-Str 'DismError' @($_.Exception.Message)) -ForegroundColor Red
     }
+}
+
+function Switch-Language {
+    if ($Script:Language -eq 'en') { $Script:Language = 'vi' } else { $Script:Language = 'en' }
+    Write-Host ""
+    Write-Host (Get-Str 'LanguageSwitched') -ForegroundColor Green
 }
 
 function Show-Menu {
     Clear-Host
-    $admin = if (Test-IsAdmin) { "Administrator" } else { "User (không có quyền admin)" }
+    $admin = if (Test-IsAdmin) { (Get-Str 'SessionAdmin') } else { (Get-Str 'SessionUser') }
     Write-Host "============================================" -ForegroundColor Cyan
     Write-Host ("        {0}" -f $Title) -ForegroundColor Cyan
     Write-Host "============================================" -ForegroundColor Cyan
-    Write-Host ("  Phiên: {0}" -f $admin) -ForegroundColor DarkGray
+    Write-Host (Get-Str 'SessionLabel' @($admin)) -ForegroundColor DarkGray
+    Write-Host (Get-Str 'LanguageLabel') -ForegroundColor DarkGray
     Write-Host ""
-    Write-Host "  1. Phân tích size các folder"
-    Write-Host "  2. Cleanup folder (chọn từng cái hoặc tất cả)"
-    Write-Host "  3. Mở Disk Cleanup (cleanmgr)"
-    Write-Host "  4. Empty Recycle Bin"
-    Write-Host "  5. Component Store Cleanup (DISM)"
-    Write-Host "  6. Thoát"
+    Write-Host (Get-Str 'Menu1')
+    Write-Host (Get-Str 'Menu2')
+    Write-Host (Get-Str 'Menu3')
+    Write-Host (Get-Str 'Menu4')
+    Write-Host (Get-Str 'Menu5')
+    Write-Host (Get-Str 'Menu6')
+    Write-Host (Get-Str 'Menu7')
     Write-Host ""
 }
 
 # ---------- Main loop ----------
 do {
     Show-Menu
-    $choice = Read-Host "Chọn (1-6)"
+    $choice = Read-Host (Get-Str 'ChoosePrompt')
     switch ($choice) {
         '1' { Show-FolderSizes }
         '2' { Invoke-Cleanup }
         '3' { Open-DiskCleanup }
         '4' { Clear-RecycleBinAll }
         '5' { Invoke-ComponentStoreCleanup }
-        '6' { Write-Host "Bye."; break }
-        default { Write-Host "Lựa chọn không hợp lệ." -ForegroundColor Red }
+        '6' { Switch-Language }
+        '7' { Write-Host (Get-Str 'Bye'); break }
+        default { Write-Host (Get-Str 'InvalidChoice') -ForegroundColor Red }
     }
-    if ($choice -ne '6') {
+    if ($choice -ne '7') {
         Write-Host ""
-        $null = Read-Host "Nhấn Enter để quay lại menu"
+        $null = Read-Host (Get-Str 'ReturnToMenu')
     }
-} while ($choice -ne '6')
+} while ($choice -ne '7')
