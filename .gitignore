@@ -1,0 +1,19 @@
+# Build output
+FreeSpace.exe
+*.exe
+
+# Signing — local cert thumbprint, không nên commit
+.cert-thumbprint.txt
+*.pfx
+*.pvk
+
+# PowerShell / editor
+*.log
+*.tmp
+.vscode/
+.idea/
+
+# Windows
+Thumbs.db
+desktop.ini
+$RECYCLE.BIN/
