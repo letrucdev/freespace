@@ -4,6 +4,7 @@ FreeSpace.exe
 
 # Signing — local cert thumbprint, không nên commit
 .cert-thumbprint.txt
+cert/.cert-thumbprint.txt
 *.pfx
 *.pvk
 

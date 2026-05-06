@@ -57,7 +57,7 @@ jobs:
           if ('${{ steps.version.outputs.version }}') {
             $args['Version'] = '${{ steps.version.outputs.version }}'
           }
-          .\build.ps1 @args
+          .\tools\build.ps1 @args
 
       - name: Show file info
         shell: pwsh

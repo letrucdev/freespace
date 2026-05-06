@@ -49,7 +49,14 @@ if (-not $root -and $MyInvocation.MyCommand.Path) {
 }
 if (-not $root) { $root = (Get-Location).Path }
 
-$thumbFile = Join-Path $root '.cert-thumbprint.txt'
+# Repo root = parent of tools/ — cert/ lives there
+$repoRoot = Split-Path -Parent $root
+
+$certDir = Join-Path $repoRoot 'cert'
+if (-not (Test-Path -LiteralPath $certDir)) {
+    New-Item -ItemType Directory -Path $certDir | Out-Null
+}
+$thumbFile = Join-Path $certDir '.cert-thumbprint.txt'
 
 # --- Step 1: optionally remove old cert ---
 if ($RemoveOld -and (Test-Path -LiteralPath $thumbFile)) {
@@ -96,7 +103,7 @@ foreach ($storeName in 'Root', 'TrustedPublisher') {
 # --- Step 4: export public .cer ---
 $safeName = ($Name -replace '[^\w\-]', '_').Trim('_')
 if (-not $safeName) { $safeName = 'CodeSigningCert' }
-$cerPath = Join-Path $root "$safeName.cer"
+$cerPath = Join-Path $certDir "$safeName.cer"
 [System.IO.File]::WriteAllBytes($cerPath, $cert.RawData)
 "  exported   : $cerPath"
 
@@ -106,3 +113,4 @@ $cert.Thumbprint | Set-Content -LiteralPath $thumbFile -NoNewline
 Write-Host ""
 Write-Host "Xong. Bây giờ chạy build.ps1 để re-sign EXE:" -ForegroundColor Green
 Write-Host "    powershell -ExecutionPolicy Bypass -File `"$root\build.ps1`"" -ForegroundColor Yellow
+Write-Host "  (từ repo root: powershell -ExecutionPolicy Bypass -File .\tools\build.ps1)" -ForegroundColor DarkGray

@@ -13,7 +13,7 @@
       3. Verify signature
 
 .NOTES
-    powershell -ExecutionPolicy Bypass -File .\build.ps1
+    powershell -ExecutionPolicy Bypass -File .\tools\build.ps1
 #>
 
 [CmdletBinding()]
@@ -34,10 +34,13 @@ if (-not $ScriptRoot -and $MyInvocation.MyCommand.Path) {
 }
 if (-not $ScriptRoot) { $ScriptRoot = (Get-Location).Path }
 
-if (-not $Source)         { $Source         = Join-Path $ScriptRoot 'Cleanup-Menu.ps1' }
-if (-not $Output)         { $Output         = Join-Path $ScriptRoot 'FreeSpace.exe' }
-if (-not $IconFile)       { $IconFile       = Join-Path $ScriptRoot 'favicon.ico' }
-if (-not $ThumbprintFile) { $ThumbprintFile = Join-Path $ScriptRoot '.cert-thumbprint.txt' }
+# Repo root = parent of tools/ — source files (Cleanup-Menu.ps1, favicon.ico, cert/) live there
+$RepoRoot = Split-Path -Parent $ScriptRoot
+
+if (-not $Source)         { $Source         = Join-Path $RepoRoot 'Cleanup-Menu.ps1' }
+if (-not $Output)         { $Output         = Join-Path $RepoRoot 'FreeSpace.exe' }
+if (-not $IconFile)       { $IconFile       = Join-Path $RepoRoot 'favicon.ico' }
+if (-not $ThumbprintFile) { $ThumbprintFile = Join-Path $RepoRoot 'cert\.cert-thumbprint.txt' }
 
 # =================================================================
 # === EDIT METADATA HERE ==========================================

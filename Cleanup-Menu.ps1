@@ -10,7 +10,9 @@
 #>
 
 [CmdletBinding()]
-param()
+param(
+    [string]$Title = 'Free Space'
+)
 
 $ErrorActionPreference = 'Stop'
 
@@ -20,6 +22,8 @@ try {
     $OutputEncoding = [System.Text.UTF8Encoding]::new()
 }
 catch { }
+
+try { $Host.UI.RawUI.WindowTitle = $Title } catch { }
 
 # ---------- Folder definitions ----------
 $Folders = [ordered]@{
@@ -303,7 +307,7 @@ function Show-Menu {
     Clear-Host
     $admin = if (Test-IsAdmin) { "Administrator" } else { "User (không có quyền admin)" }
     Write-Host "============================================" -ForegroundColor Cyan
-    Write-Host "        Windows Cleanup Menu" -ForegroundColor Cyan
+    Write-Host ("        {0}" -f $Title) -ForegroundColor Cyan
     Write-Host "============================================" -ForegroundColor Cyan
     Write-Host ("  Phiên: {0}" -f $admin) -ForegroundColor DarkGray
     Write-Host ""
