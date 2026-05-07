@@ -33,7 +33,6 @@ $Script:Language = $Language
 
 $Script:Strings = @{
     en = @{
-        AnalysisHeader      = '=== Folder size analysis ==='
         Scanning            = '  Scanning: {0} ...'
         NotExists           = '(not found)'
         Total               = 'Total: {0}'
@@ -71,21 +70,19 @@ $Script:Strings = @{
         SessionUser         = 'User (no admin privileges)'
         SessionLabel        = '  Session: {0}'
         LanguageLabel       = '  Language: English'
-        Menu1               = '  1. Analyze folder sizes'
-        Menu2               = '  2. Cleanup folder (select individual or all)'
-        Menu3               = '  3. Open Disk Cleanup (cleanmgr)'
-        Menu4               = '  4. Empty Recycle Bin'
-        Menu5               = '  5. Component Store Cleanup (DISM)'
-        Menu6               = '  6. Switch language (English / Tieng Viet)'
-        Menu7               = '  7. Exit'
-        ChoosePrompt        = 'Choice (1-7)'
+        Menu1               = '  1. Cleanup folder (analyze sizes & select individual or all)'
+        Menu2               = '  2. Open Disk Cleanup (cleanmgr)'
+        Menu3               = '  3. Empty Recycle Bin'
+        Menu4               = '  4. Component Store Cleanup (DISM)'
+        Menu5               = '  5. Switch language (English / Tieng Viet)'
+        Menu6               = '  6. Exit'
+        ChoosePrompt        = 'Choice (1-6)'
         InvalidChoice       = 'Invalid choice.'
         ReturnToMenu        = 'Press Enter to return to menu'
         LanguageSwitched    = 'Language switched to English.'
         Bye                 = 'Bye.'
     }
     vi = @{
-        AnalysisHeader      = '=== Phan tich size folder ==='
         Scanning            = '  Dang quet: {0} ...'
         NotExists           = '(khong ton tai)'
         Total               = 'Tong: {0}'
@@ -123,14 +120,13 @@ $Script:Strings = @{
         SessionUser         = 'User (khong co quyen admin)'
         SessionLabel        = '  Phien: {0}'
         LanguageLabel       = '  Ngon ngu: Tieng Viet'
-        Menu1               = '  1. Phan tich size cac folder'
-        Menu2               = '  2. Cleanup folder (chon tung cai hoac tat ca)'
-        Menu3               = '  3. Mo Disk Cleanup (cleanmgr)'
-        Menu4               = '  4. Empty Recycle Bin'
-        Menu5               = '  5. Component Store Cleanup (DISM)'
-        Menu6               = '  6. Doi ngon ngu (English / Tieng Viet)'
-        Menu7               = '  7. Thoat'
-        ChoosePrompt        = 'Chon (1-7)'
+        Menu1               = '  1. Cleanup folder (phan tich size & chon tung cai hoac tat ca)'
+        Menu2               = '  2. Mo Disk Cleanup (cleanmgr)'
+        Menu3               = '  3. Empty Recycle Bin'
+        Menu4               = '  4. Component Store Cleanup (DISM)'
+        Menu5               = '  5. Doi ngon ngu (English / Tieng Viet)'
+        Menu6               = '  6. Thoat'
+        ChoosePrompt        = 'Chon (1-6)'
         InvalidChoice       = 'Lua chon khong hop le.'
         ReturnToMenu        = 'Nhan Enter de quay lai menu'
         LanguageSwitched    = 'Da chuyen sang Tieng Viet.'
@@ -198,35 +194,6 @@ function Get-FolderSize {
     }
 }
 
-function Show-FolderSizes {
-    Write-Host ""
-    Write-Host (Get-Str 'AnalysisHeader') -ForegroundColor Cyan
-    Write-Host ""
-
-    $rows = @()
-    $totalBytes = 0.0
-    foreach ($name in $Folders.Keys) {
-        $path = $Folders[$name]
-        Write-Host (Get-Str 'Scanning' @($name)) -ForegroundColor DarkGray
-        $info = Get-FolderSize -Path $path
-        $totalBytes += $info.Bytes
-        $rows += [pscustomobject]@{
-            Folder    = $name
-            Path      = $path
-            Size      = if ($info.Exists) { Format-Size $info.Bytes } else { (Get-Str 'NotExists') }
-            Files     = if ($info.Exists) { $info.FileCount } else { '-' }
-            SizeBytes = $info.Bytes
-        }
-    }
-
-    Write-Host ""
-    $rows | Sort-Object -Property SizeBytes -Descending |
-    Format-Table -AutoSize -Property Folder, Size, Files, Path
-
-    Write-Host (Get-Str 'Total' @((Format-Size $totalBytes))) -ForegroundColor Yellow
-    Write-Host ""
-}
-
 function Clear-FolderContents {
     param(
         [Parameter(Mandatory)][string]$Name,
@@ -268,7 +235,7 @@ function Clear-FolderContents {
     }
 
     $after = if (Test-Path -LiteralPath $Path) { (Get-FolderSize -Path $Path).Bytes } else { 0 }
-    $freed = [Math]::Max(0, $before - $after)
+    $freed = [Math]::Max([double]0, [double]($before - $after))
 
     $msg = (Get-Str 'Freed' @((Format-Size $freed)))
     if ($errors -gt 0) { $msg += (Get-Str 'LockedSuffix' @($errors)) }
@@ -305,12 +272,31 @@ function Invoke-Cleanup {
     Write-Host ""
 
     $names = @($Folders.Keys)
+
+    # Analyze sizes up front so user can see what's worth cleaning
+    $sizes = @{}
+    $totalBytes = 0.0
+    foreach ($n in $names) {
+        Write-Host (Get-Str 'Scanning' @($n)) -ForegroundColor DarkGray
+        $info = Get-FolderSize -Path $Folders[$n]
+        $sizes[$n] = $info
+        $totalBytes += $info.Bytes
+    }
+
+    Write-Host ""
     for ($i = 0; $i -lt $names.Count; $i++) {
-        Write-Host ("  [{0}] {1}" -f ($i + 1), $names[$i])
-        Write-Host ("       {0}" -f $Folders[$names[$i]]) -ForegroundColor DarkGray
+        $n = $names[$i]
+        $info = $sizes[$n]
+        $sizeText = if ($info.Exists) { Format-Size $info.Bytes } else { (Get-Str 'NotExists') }
+        $filesText = if ($info.Exists) { "$($info.FileCount) files" } else { '' }
+        Write-Host ("  [{0}] {1}" -f ($i + 1), $n) -NoNewline
+        Write-Host ("  -  {0}  {1}" -f $sizeText, $filesText) -ForegroundColor Yellow
+        Write-Host ("       {0}" -f $Folders[$n]) -ForegroundColor DarkGray
     }
     Write-Host (Get-Str 'AllOption')
     Write-Host (Get-Str 'CancelOption')
+    Write-Host ""
+    Write-Host (Get-Str 'Total' @((Format-Size $totalBytes))) -ForegroundColor Yellow
     Write-Host ""
 
     $sel = Read-Host (Get-Str 'SelectFolders')
@@ -450,7 +436,6 @@ function Show-Menu {
     Write-Host (Get-Str 'Menu4')
     Write-Host (Get-Str 'Menu5')
     Write-Host (Get-Str 'Menu6')
-    Write-Host (Get-Str 'Menu7')
     Write-Host ""
 }
 
@@ -459,17 +444,16 @@ do {
     Show-Menu
     $choice = Read-Host (Get-Str 'ChoosePrompt')
     switch ($choice) {
-        '1' { Show-FolderSizes }
-        '2' { Invoke-Cleanup }
-        '3' { Open-DiskCleanup }
-        '4' { Clear-RecycleBinAll }
-        '5' { Invoke-ComponentStoreCleanup }
-        '6' { Switch-Language }
-        '7' { Write-Host (Get-Str 'Bye'); break }
+        '1' { Invoke-Cleanup }
+        '2' { Open-DiskCleanup }
+        '3' { Clear-RecycleBinAll }
+        '4' { Invoke-ComponentStoreCleanup }
+        '5' { Switch-Language }
+        '6' { Write-Host (Get-Str 'Bye'); break }
         default { Write-Host (Get-Str 'InvalidChoice') -ForegroundColor Red }
     }
-    if ($choice -ne '7') {
+    if ($choice -ne '6') {
         Write-Host ""
         $null = Read-Host (Get-Str 'ReturnToMenu')
     }
-} while ($choice -ne '7')
+} while ($choice -ne '6')
